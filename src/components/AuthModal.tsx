@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { User, RANK_LABELS } from "../types";
+import { User } from "../types";
 import Icon from "@/components/ui/icon";
 
 interface AuthModalProps {
   onClose: () => void;
-  onRegister: (user: User) => void;
+  onRegister: (user: User) => Promise<void>;
   existingMembers: User[];
 }
 
@@ -14,41 +14,45 @@ export default function AuthModal({ onClose, onRegister, existingMembers }: Auth
   const [leaderPassword, setLeaderPassword] = useState("");
   const [isLeader, setIsLeader] = useState(false);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const LEADER_PASSWORD = "horde2024";
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!nickname.trim()) {
       setError("Введи свой игровой ник");
+      return;
+    }
+    if (isLeader && leaderPassword !== LEADER_PASSWORD) {
+      setError("Неверный пароль главы");
       return;
     }
 
     const existing = existingMembers.find(m => m.nickname.toLowerCase() === nickname.trim().toLowerCase());
 
-    if (mode === "login") {
-      if (!existing) {
-        setError("Игрок с таким ником не найден. Сначала зарегистрируйся или вступи в альянс.");
-        return;
-      }
-      if (isLeader && leaderPassword !== LEADER_PASSWORD) {
-        setError("Неверный пароль главы");
-        return;
-      }
-      onRegister(existing);
-    } else {
-      if (existing) {
-        setError("Этот ник уже занят. Введи другой или войди.");
-        return;
-      }
-      const newUser: User = {
-        id: Date.now().toString(),
-        nickname: nickname.trim(),
-        rank: isLeader && leaderPassword === LEADER_PASSWORD ? "leader" : "recruit",
-        avatar: null,
-        joinedAt: new Date().toISOString().split("T")[0],
-        online: true,
-      };
-      onRegister(newUser);
+    if (mode === "login" && !existing) {
+      setError("Игрок с таким ником не найден. Зарегистрируйся или вступи в альянс.");
+      return;
+    }
+    if (mode === "register" && existing) {
+      setError("Этот ник уже занят. Войди или введи другой.");
+      return;
+    }
+
+    setLoading(true);
+    const rank = isLeader && leaderPassword === LEADER_PASSWORD ? "leader" : "recruit";
+    const userToPass: User = existing ?? {
+      id: Date.now().toString(),
+      nickname: nickname.trim(),
+      rank,
+      avatar: null,
+      joinedAt: new Date().toISOString().split("T")[0],
+      online: true,
+    };
+    try {
+      await onRegister(userToPass);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -149,9 +153,10 @@ export default function AuthModal({ onClose, onRegister, existingMembers }: Auth
 
           <button
             onClick={handleSubmit}
-            className="btn-gold w-full py-3 rounded-lg text-base"
+            disabled={loading}
+            className="btn-gold w-full py-3 rounded-lg text-base disabled:opacity-60"
           >
-            {mode === "login" ? "Войти в альянс" : "Вступить в ОРДУ"}
+            {loading ? "Загрузка..." : (mode === "login" ? "Войти в альянс" : "Вступить в ОРДУ")}
           </button>
         </div>
 

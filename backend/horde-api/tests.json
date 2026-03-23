@@ -1,0 +1,30 @@
+{
+  "tests": [
+    {
+      "name": "GET — получить все данные альянса",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedBody": {"members": [], "messages": [], "rules": [], "events": []},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "POST register — регистрация нового пользователя",
+      "method": "POST",
+      "path": "/",
+      "body": {"action": "register", "nickname": "ТестВоинАвто", "rank": "recruit"},
+      "expectedStatus": 200,
+      "expectedBody": {"user": {"rank": "recruit"}},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "POST send_message — отправить сообщение",
+      "method": "POST",
+      "path": "/",
+      "body": {"action": "send_message", "userId": "test1", "nickname": "ТестВоинАвто", "rank": "recruit", "type": "text", "text": "Тест сообщение"},
+      "expectedStatus": 200,
+      "expectedBody": {"type": "text"},
+      "bodyMatcher": "partial"
+    }
+  ]
+}

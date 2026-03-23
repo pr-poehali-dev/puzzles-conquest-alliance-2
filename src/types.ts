@@ -30,11 +30,17 @@ export interface AllianceEvent {
   type: "war" | "tournament" | "gather" | "other";
 }
 
+export interface RuleItem {
+  id: number;
+  text: string;
+}
+
 export interface AppState {
   currentUser: User | null;
   members: User[];
   messages: Message[];
   rules: string[];
+  rulesWithIds?: RuleItem[];
   events: AllianceEvent[];
   page: "home" | "chat" | "members" | "rules" | "events" | "join" | "leader";
 }

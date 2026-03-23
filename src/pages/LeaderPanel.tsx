@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { AppState, User, Rank, RANK_LABELS, RANK_ORDER, AllianceEvent } from "../types";
+import { AppState, Rank, RANK_LABELS, RANK_ORDER, AllianceEvent, RuleItem } from "../types";
 import Icon from "@/components/ui/icon";
 
 interface LeaderPanelProps {
   state: AppState;
-  onUpdateState: (updates: Partial<AppState>) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onUpdateState: (updates: any) => Promise<void>;
 }
 
 type Tab = "members" | "rules" | "events" | "settings";
@@ -19,55 +20,46 @@ export default function LeaderPanel({ state, onUpdateState }: LeaderPanelProps) 
   const [newNick, setNewNick] = useState(state.currentUser?.nickname || "");
   const [nickSaved, setNickSaved] = useState(false);
 
-  const setRank = (userId: string, rank: Rank) => {
-    onUpdateState({
-      members: state.members.map(m => m.id === userId ? { ...m, rank } : m),
-      currentUser: state.currentUser?.id === userId ? { ...state.currentUser, rank } : state.currentUser,
-    });
+  const setRank = async (userId: string, rank: Rank) => {
+    await onUpdateState({ _setRank: { userId, rank } });
   };
 
-  const removeMember = (userId: string) => {
+  const removeMember = async (userId: string) => {
     if (userId === state.currentUser?.id) return;
-    onUpdateState({ members: state.members.filter(m => m.id !== userId) });
+    await onUpdateState({ _deleteUser: userId });
   };
 
-  const addRule = () => {
+  const addRule = async () => {
     if (!newRule.trim()) return;
-    onUpdateState({ rules: [...state.rules, newRule.trim()] });
+    await onUpdateState({ _addRule: newRule.trim() });
     setNewRule("");
   };
 
-  const removeRule = (i: number) => {
-    onUpdateState({ rules: state.rules.filter((_, idx) => idx !== i) });
+  const removeRule = async (ruleId: number) => {
+    await onUpdateState({ _deleteRule: ruleId });
   };
 
-  const addEvent = () => {
+  const addEvent = async () => {
     if (!newEventTitle.trim() || !newEventDate) return;
-    const ev: AllianceEvent = {
-      id: Date.now().toString(),
+    const ev: Omit<AllianceEvent, "id"> = {
       title: newEventTitle.trim(),
       description: newEventDesc.trim(),
       date: newEventDate,
       type: newEventType,
     };
-    onUpdateState({ events: [...state.events, ev] });
+    await onUpdateState({ _addEvent: ev });
     setNewEventTitle("");
     setNewEventDesc("");
     setNewEventDate("");
   };
 
-  const removeEvent = (id: string) => {
-    onUpdateState({ events: state.events.filter(e => e.id !== id) });
+  const removeEvent = async (id: string) => {
+    await onUpdateState({ _deleteEvent: id });
   };
 
-  const saveNick = () => {
+  const saveNick = async () => {
     if (!newNick.trim() || !state.currentUser) return;
-    const updated = { ...state.currentUser, nickname: newNick.trim() };
-    onUpdateState({
-      currentUser: updated,
-      members: state.members.map(m => m.id === updated.id ? updated : m),
-      messages: state.messages.map(m => m.userId === updated.id ? { ...m, nickname: updated.nickname } : m),
-    });
+    await onUpdateState({ _setNickname: { userId: state.currentUser.id, nickname: newNick.trim() } });
     setNickSaved(true);
     setTimeout(() => setNickSaved(false), 2000);
   };
@@ -186,15 +178,15 @@ export default function LeaderPanel({ state, onUpdateState }: LeaderPanelProps) 
 
           {/* Rules list */}
           <div className="space-y-2">
-            {state.rules.map((rule, i) => (
-              <div key={i} className="horde-card rounded-lg p-4 flex items-start gap-3 group">
+            {(state.rulesWithIds ?? state.rules.map((t, i) => ({ id: i, text: t } as RuleItem))).map((rule, i) => (
+              <div key={rule.id} className="horde-card rounded-lg p-4 flex items-start gap-3 group">
                 <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-cinzel flex-shrink-0 mt-0.5"
                   style={{ background: 'rgba(139,0,0,0.5)', color: 'var(--gold)' }}>
                   {i + 1}
                 </div>
-                <p className="flex-1 text-sm font-raleway text-gray-200">{rule}</p>
+                <p className="flex-1 text-sm font-raleway text-gray-200">{rule.text}</p>
                 <button
-                  onClick={() => removeRule(i)}
+                  onClick={() => removeRule(rule.id)}
                   className="text-red-700 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100"
                 >
                   <Icon name="Trash2" size={14} />

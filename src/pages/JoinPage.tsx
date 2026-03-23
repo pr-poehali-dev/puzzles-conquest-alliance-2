@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { User } from "../types";
 import Icon from "@/components/ui/icon";
 
 interface JoinPageProps {
-  onJoin: (user: User) => void;
+  onJoin: (user: User) => Promise<void>;
 }
 
 export default function JoinPage({ onJoin }: JoinPageProps) {
@@ -11,8 +11,6 @@ export default function JoinPage({ onJoin }: JoinPageProps) {
   const [nickname, setNickname] = useState("");
   const [error, setError] = useState("");
   const [declined, setDeclined] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-
   const playWelcomeSound = () => {
     try {
       const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
@@ -55,15 +53,16 @@ export default function JoinPage({ onJoin }: JoinPageProps) {
     playWelcomeSound();
     setStep("success");
 
+    const newUser: User = {
+      id: Date.now().toString(),
+      nickname: nickname.trim(),
+      rank: "recruit",
+      avatar: null,
+      joinedAt: new Date().toISOString().split("T")[0],
+      online: true,
+    };
+
     setTimeout(() => {
-      const newUser: User = {
-        id: Date.now().toString(),
-        nickname: nickname.trim(),
-        rank: "recruit",
-        avatar: null,
-        joinedAt: new Date().toISOString().split("T")[0],
-        online: true,
-      };
       onJoin(newUser);
     }, 3000);
   };
